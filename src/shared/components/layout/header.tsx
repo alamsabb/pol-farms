@@ -1,15 +1,15 @@
-'use client'
+"use client";
 
-import { Bell, Search, User, Settings, LogOut, Menu } from 'lucide-react'
-import { Button } from '@/shared/components/ui/button'
-import { usePageTitle } from '@/shared/hooks/use-page-title'
+import { Bell, Search, User, Settings, LogOut, Menu } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
+import { usePageTitle } from "@/shared/hooks/use-page-title";
 
 interface HeaderProps {
-  onMenuClick?: () => void
+  onMenuClick?: () => void;
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const { title, subtitle } = usePageTitle()
+  const { title, subtitle } = usePageTitle();
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/20 bg-white/80 backdrop-blur-xl shadow-sm">
       <div className="flex h-16 items-center justify-between px-6">
@@ -22,7 +22,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
               {title}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium">{subtitle}</p>
+            {/* <p className="text-xs sm:text-sm text-slate-500 font-medium">{subtitle}</p> */}
           </div>
         </div>
 
@@ -60,18 +60,25 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           {/* User Profile */}
           <div className="relative group">
-            <Button variant="ghost" className="flex items-center space-x-2 px-2 sm:px-3">
+            <Button
+              variant="ghost"
+              className="flex items-center space-x-2 px-2 sm:px-3"
+            >
               <div className="h-7 w-7 sm:h-8 sm:w-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                 <User className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
               </div>
-              <span className="hidden sm:block text-sm font-medium text-slate-700">Admin</span>
+              <span className="hidden sm:block text-sm font-medium text-slate-700">
+                Admin
+              </span>
             </Button>
-            
+
             {/* Dropdown Menu */}
             <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="p-2">
                 <div className="px-3 py-2 border-b border-slate-100">
-                  <p className="text-sm font-medium text-slate-800">Admin User</p>
+                  <p className="text-sm font-medium text-slate-800">
+                    Admin User
+                  </p>
                   <p className="text-xs text-slate-500">admin@poultry.com</p>
                 </div>
                 <div className="mt-2 space-y-1">
@@ -95,5 +102,5 @@ export function Header({ onMenuClick }: HeaderProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }
