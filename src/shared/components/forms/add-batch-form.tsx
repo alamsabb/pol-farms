@@ -21,7 +21,7 @@ interface Farm {
   location: string;
 }
 interface AddBatchFormProps {
-  farms: Farm[]; // ✅ Added farms
+  // farms: Farm[]; // ✅ Added farms
   onSubmit: (data: BatchFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
