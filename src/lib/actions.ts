@@ -1,0 +1,325 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import clientPromise from '@/lib/mongodb'
+import { Farm, Batch, Vendor, Sale } from '@/types'
+import { ObjectId } from 'mongodb'
+
+// Farm Actions
+export async function createFarm(formData: FormData) {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const farm: Omit<Farm, '_id'> = {
+      name: formData.get('name') as string,
+      location: formData.get('location') as string,
+      capacity: parseInt(formData.get('capacity') as string),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    await db.collection('farms').insertOne(farm)
+    revalidatePath('/farms')
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error creating farm:', error)
+    return { success: false, error: 'Failed to create farm' }
+  }
+}
+
+export async function getFarms(): Promise<Farm[]> {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const farms = await db.collection('farms').find({}).toArray()
+    return farms.map(farm => ({
+      ...farm,
+      _id: farm._id.toString(),
+    })) as Farm[]
+  } catch (error) {
+    console.error('Error fetching farms:', error)
+    return []
+  }
+}
+
+export async function deleteFarm(farmId: string) {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    await db.collection('farms').deleteOne({ _id: new ObjectId(farmId) })
+    revalidatePath('/farms')
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting farm:', error)
+    return { success: false, error: 'Failed to delete farm' }
+  }
+}
+
+// Batch Actions
+export async function createBatch(formData: FormData) {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const batch: Omit<Batch, '_id'> = {
+      farmId: formData.get('farmId') as string,
+      startDate: new Date(formData.get('startDate') as string),
+      initialChickCount: parseInt(formData.get('initialChickCount') as string),
+      currentBirdCount: parseInt(formData.get('initialChickCount') as string),
+      breed: formData.get('breed') as string,
+      supplier: formData.get('supplier') as string,
+      costPerChick: parseFloat(formData.get('costPerChick') as string),
+      status: 'active',
+      totalMortality: 0,
+      totalFeedConsumed: 0,
+      totalWeightSold: 0,
+      totalBirdsSold: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    await db.collection('batches').insertOne(batch)
+    revalidatePath('/batches')
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error creating batch:', error)
+    return { success: false, error: 'Failed to create batch' }
+  }
+}
+
+export async function getBatches(): Promise<Batch[]> {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const batches = await db.collection('batches').find({}).toArray()
+    return batches.map(batch => ({
+      ...batch,
+      _id: batch._id.toString(),
+      startDate: new Date(batch.startDate),
+    })) as Batch[]
+  } catch (error) {
+    console.error('Error fetching batches:', error)
+    return []
+  }
+}
+
+// Vendor Actions
+export async function createVendor(formData: FormData) {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const vendor: Omit<Vendor, '_id'> = {
+      name: formData.get('name') as string,
+      company: formData.get('company') as string,
+      contact: formData.get('contact') as string,
+      address: formData.get('address') as string,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    await db.collection('vendors').insertOne(vendor)
+    revalidatePath('/vendors')
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error creating vendor:', error)
+    return { success: false, error: 'Failed to create vendor' }
+  }
+}
+
+export async function getVendors(): Promise<Vendor[]> {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const vendors = await db.collection('vendors').find({}).toArray()
+    return vendors.map(vendor => ({
+      ...vendor,
+      _id: vendor._id.toString(),
+    })) as Vendor[]
+  } catch (error) {
+    console.error('Error fetching vendors:', error)
+    return []
+  }
+}
+
+// Sale Actions
+export async function createSale(formData: FormData) {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const batchId = formData.get('batchId') as string
+    const birdsSold = parseInt(formData.get('birdsSold') as string)
+    const totalWeight = parseFloat(formData.get('totalWeight') as string)
+    const pricePerKg = parseFloat(formData.get('pricePerKg') as string)
+    
+    // Validate batch exists and has enough birds
+    const batch = await db.collection('batches').findOne({ _id: new ObjectId(batchId) })
+    if (!batch) {
+      return { success: false, error: 'Batch not found' }
+    }
+    
+    if (batch.status !== 'active') {
+      return { success: false, error: 'Cannot sell from inactive batch' }
+    }
+    
+    if (batch.currentBirdCount < birdsSold) {
+      return { success: false, error: `Only ${batch.currentBirdCount} birds available in this batch` }
+    }
+    
+    const sale: Omit<Sale, '_id'> = {
+      batchId,
+      vendorId: formData.get('vendorId') as string,
+      date: new Date(formData.get('date') as string),
+      birdsSold,
+      totalWeight,
+      pricePerKg,
+      totalAmount: totalWeight * pricePerKg,
+      createdAt: new Date(),
+    }
+
+    await db.collection('sales').insertOne(sale)
+    
+    const newBirdCount = batch.currentBirdCount - birdsSold
+    
+    // Update batch and set status to completed if no birds left
+    await db.collection('batches').updateOne(
+      { _id: new ObjectId(batchId) },
+      { 
+        $inc: { 
+          currentBirdCount: -birdsSold,
+          totalBirdsSold: birdsSold,
+          totalWeightSold: totalWeight
+        },
+        $set: { 
+          updatedAt: new Date(),
+          status: newBirdCount === 0 ? 'completed' : 'active'
+        }
+      }
+    )
+    
+    revalidatePath('/sales')
+    revalidatePath('/batches')
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error creating sale:', error)
+    return { success: false, error: 'Failed to create sale' }
+  }
+}
+
+export async function getSales(): Promise<Sale[]> {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const sales = await db.collection('sales').find({}).sort({ createdAt: -1 }).toArray()
+    return sales.map(sale => ({
+      ...sale,
+      _id: sale._id.toString(),
+      date: new Date(sale.date),
+    })) as Sale[]
+  } catch (error) {
+    console.error('Error fetching sales:', error)
+    return []
+  }
+}
+
+// Daily Record Actions
+export async function createDailyRecord(formData: FormData) {
+  try {
+    const client = await clientPromise
+    const db = client.db('poultry-farm')
+    
+    const batchId = formData.get('batchId') as string
+    const mortality = parseInt(formData.get('mortality') as string) || 0
+    const date = formData.get('date') as string
+    
+    // Check if record already exists for this date
+    const existingRecord = await db.collection('dailyRecords').findOne({
+      batchId,
+      date: new Date(date)
+    })
+    
+    if (existingRecord) {
+      return { success: false, error: 'Daily record already exists for this date' }
+    }
+    
+    // Validate batch exists and has enough birds for mortality
+    const batch = await db.collection('batches').findOne({ _id: new ObjectId(batchId) })
+    if (!batch) {
+      return { success: false, error: 'Batch not found' }
+    }
+    
+    if (batch.currentBirdCount < mortality) {
+      return { success: false, error: `Only ${batch.currentBirdCount} birds available in this batch` }
+    }
+    
+    const feedCost = parseFloat(formData.get('feedCost') as string) || 0
+    const medicineCost = parseFloat(formData.get('medicineCost') as string) || 0
+    
+    const dailyRecord = {
+      batchId,
+      date: new Date(date),
+      feedBags: parseInt(formData.get('feedBags') as string) || 0,
+      feedCost,
+      mortality,
+      medicineUsed: formData.get('medicineUsed') as string || '',
+      medicineCost,
+      averageWeight: parseFloat(formData.get('averageWeight') as string) || null,
+      notes: formData.get('notes') as string || '',
+      createdAt: new Date(),
+    }
+
+    await db.collection('dailyRecords').insertOne(dailyRecord)
+    
+    // Update batch with mortality and costs
+    const totalDailyCost = feedCost + medicineCost
+    
+    if (mortality > 0) {
+      const newBirdCount = batch.currentBirdCount - mortality
+      await db.collection('batches').updateOne(
+        { _id: new ObjectId(batchId) },
+        { 
+          $inc: { 
+            currentBirdCount: -mortality,
+            totalMortality: mortality,
+            totalFeedConsumed: dailyRecord.feedBags,
+            totalProductionCost: totalDailyCost
+          },
+          $set: { 
+            updatedAt: new Date(),
+            status: newBirdCount === 0 ? 'completed' : 'active'
+          }
+        }
+      )
+    } else {
+      await db.collection('batches').updateOne(
+        { _id: new ObjectId(batchId) },
+        { 
+          $inc: { 
+            totalFeedConsumed: dailyRecord.feedBags,
+            totalProductionCost: totalDailyCost
+          },
+          $set: { updatedAt: new Date() }
+        }
+      )
+    }
+    
+    revalidatePath('/batches')
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error creating daily record:', error)
+    return { success: false, error: 'Failed to create daily record' }
+  }
+}
