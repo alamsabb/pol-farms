@@ -135,33 +135,42 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Batches
+      <div className="flex  sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="p-2 sm:px-3 sm:py-2"
+            size="sm"
+          >
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back to Batches</span>
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold gradient-text">
-              {batch.breed} - Batch Details
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold gradient-text truncate">
+              <span>{batch.breed}</span>
+              {/* <span className="hidden sm:inline">
+                {batch.breed} - Batch Details
+              </span> */}
             </h1>
-            <p className="text-slate-600">
+            <p className="text-sm sm:text-base text-slate-600 truncate">
               {farm?.name} - {farm?.location}
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           {batch.status === "active" && (
             <Button
               onClick={() => setIsRecordModalOpen(true)}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 p-4"
+              size="sm"
             >
               <Plus className="h-4 w-4" />
               <span>Add Daily Record</span>
             </Button>
           )}
           <span
-            className={`px-3 py-1 rounded-full text-sm font-semibold ${
+            className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap ${
               batch.status === "active"
                 ? "bg-green-100 text-green-700"
                 : "bg-gray-100 text-gray-700"
