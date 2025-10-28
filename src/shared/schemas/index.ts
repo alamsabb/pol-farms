@@ -17,8 +17,11 @@ export const batchSchema = z.object({
 
 export const dailyRecordSchema = z.object({
   batchId: z.string().min(1, 'Batch ID is required'),
-  feedBags: z.number().min(0, 'Feed bags cannot be negative'),
+  feedKg: z.number().min(0, 'Feed (kg) cannot be negative'),
   mortality: z.number().min(0, 'Mortality cannot be negative'),
+  feedCost: z.number().min(0).default(0),
+  medicineUsed: z.string().optional(),
+  medicineCost: z.number().min(0).optional(),
   averageWeight: z.number().min(0).optional(),
   notes: z.string().max(500, 'Notes too long').optional(),
 })

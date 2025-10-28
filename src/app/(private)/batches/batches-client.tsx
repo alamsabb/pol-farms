@@ -15,6 +15,7 @@ import {
   formatCurrency,
   calculateFCR,
   calculateMortalityRate,
+  formatPercent,
 } from "@/shared/utils";
 
 interface Batch {
@@ -185,7 +186,7 @@ export function BatchesClient() {
                     <div>
                       <p className="text-slate-500">Mortality Rate</p>
                       <p className="font-semibold text-red-600">
-                        {mortalityRate}%
+                        {formatPercent(mortalityRate)}
                       </p>
                     </div>
                     <div>

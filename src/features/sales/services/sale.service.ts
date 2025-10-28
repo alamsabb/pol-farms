@@ -1,14 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import clientPromise from '@/lib/mongodb'
+import clientPromise, { getDb } from '@/lib/mongodb'
 import { Sale } from '@/types'
 import { saleSchema } from '@/shared/schemas'
 import { ObjectId } from 'mongodb'
 
 export async function createSale(formData: FormData) {
-  const client = await clientPromise
-  const db = client.db('poultry-farm')
+  const db = await getDb()
   
   const rawData = {
     batchId: formData.get('batchId') as string,
@@ -24,7 +23,7 @@ export async function createSale(formData: FormData) {
   
   const sale: Omit<Sale, '_id'> = {
     ...validatedData,
-    saleDate: new Date(validatedData.saleDate),
+    date: new Date(validatedData.saleDate),
     totalAmount: validatedData.totalWeight * validatedData.pricePerKg,
     createdAt: new Date(),
   }
@@ -40,8 +39,7 @@ export async function createSale(formData: FormData) {
 }
 
 export async function getSales(): Promise<Sale[]> {
-  const client = await clientPromise
-  const db = client.db('poultry-farm')
+  const db = await getDb()
   
   const sales = await db.collection('sales').aggregate([
     {

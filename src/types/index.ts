@@ -31,7 +31,7 @@ export interface DailyRecord {
   _id?: string
   batchId: string
   date: Date
-  feedBags: number
+  feedKg: number
   feedCost: number
   mortality: number
   medicineUsed?: string

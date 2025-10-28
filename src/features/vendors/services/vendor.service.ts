@@ -1,14 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import clientPromise from '@/lib/mongodb'
+import clientPromise, { getDb } from '@/lib/mongodb'
 import { Vendor } from '@/types'
 import { vendorSchema } from '@/shared/schemas'
 import { ObjectId } from 'mongodb'
 
 export async function createVendor(formData: FormData) {
-  const client = await clientPromise
-  const db = client.db('poultry-farm')
+  const db = await getDb()
   
   const rawData = {
     name: formData.get('name') as string,
@@ -29,8 +28,7 @@ export async function createVendor(formData: FormData) {
 }
 
 export async function getVendors(): Promise<Vendor[]> {
-  const client = await clientPromise
-  const db = client.db('poultry-farm')
+  const db = await getDb()
   
   const vendors = await db.collection('vendors').find({}).toArray()
   return vendors.map(vendor => ({
@@ -40,8 +38,7 @@ export async function getVendors(): Promise<Vendor[]> {
 }
 
 export async function deleteVendor(id: string) {
-  const client = await clientPromise
-  const db = client.db('poultry-farm')
+  const db = await getDb()
   
   await db.collection('vendors').deleteOne({ _id: new ObjectId(id) })
   revalidatePath('/vendors')

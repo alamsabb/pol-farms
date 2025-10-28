@@ -1,88 +1,136 @@
-import { getFarms, getBatches, getSales } from '@/lib/actions'
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
-import { StatsCard } from '@/shared/components/ui/stats-card'
-import { formatCurrency, calculateFCR, calculateMortalityRate } from '@/shared/utils'
-import { Building2, Egg, TrendingUp, AlertTriangle, Activity, IndianRupee, Target, Calendar } from 'lucide-react'
+import { getFarms, getBatches, getSales } from "@/lib/actions";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
+import { StatsCard } from "@/shared/components/ui/stats-card";
+import {
+  formatCurrency,
+  calculateFCR,
+  calculateMortalityRate,
+  formatPercent,
+} from "@/shared/utils";
+import {
+  Building2,
+  Egg,
+  TrendingUp,
+  AlertTriangle,
+  Activity,
+  IndianRupee,
+  Target,
+  Calendar,
+} from "lucide-react";
 
 export default async function DashboardPage() {
   const [farms, batches, sales] = await Promise.all([
     getFarms(),
     getBatches(),
-    getSales()
-  ])
+    getSales(),
+  ]);
 
-  const activeBatches = batches.filter(batch => batch.status === 'active')
-  const totalActiveBirds = activeBatches.reduce((sum, batch) => sum + batch.currentBirdCount, 0)
-  const totalMortality = batches.reduce((sum, batch) => sum + batch.totalMortality, 0)
-  const totalInitialBirds = batches.reduce((sum, batch) => sum + batch.initialChickCount, 0)
-  const overallMortalityRate = calculateMortalityRate(totalMortality, totalInitialBirds)
-  
-  const totalFeedConsumed = batches.reduce((sum, batch) => sum + batch.totalFeedConsumed, 0)
-  const totalWeightSold = batches.reduce((sum, batch) => sum + batch.totalWeightSold, 0)
-  const averageFCR = calculateFCR(totalFeedConsumed, totalWeightSold)
-  
-  const totalRevenue = sales.reduce((sum, sale) => sum + sale.totalAmount, 0)
-  const totalExpenditure = batches.reduce((sum, batch) => 
-    sum + (batch.initialChickCount * batch.costPerChick), 0
-  )
+  const activeBatches = batches.filter((batch) => batch.status === "active");
+  const totalActiveBirds = activeBatches.reduce(
+    (sum, batch) => sum + batch.currentBirdCount,
+    0
+  );
+  const totalMortality = batches.reduce(
+    (sum, batch) => sum + batch.totalMortality,
+    0
+  );
+  const totalInitialBirds = batches.reduce(
+    (sum, batch) => sum + batch.initialChickCount,
+    0
+  );
+  const overallMortalityRate = calculateMortalityRate(
+    totalMortality,
+    totalInitialBirds
+  );
+
+  const totalFeedConsumed = batches.reduce(
+    (sum, batch) => sum + batch.totalFeedConsumed,
+    0
+  );
+  const totalWeightSold = batches.reduce(
+    (sum, batch) => sum + batch.totalWeightSold,
+    0
+  );
+  const averageFCR = calculateFCR(totalFeedConsumed, totalWeightSold);
+
+  const totalRevenue = sales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+  const totalExpenditure = batches.reduce(
+    (sum, batch) => sum + batch.initialChickCount * batch.costPerChick,
+    0
+  );
 
   // Calculate individual farm FCR
-  const farmMetrics = farms.map(farm => {
-    const farmBatches = batches.filter(batch => batch.farmId === farm._id)
-    const farmFeedConsumed = farmBatches.reduce((sum, batch) => sum + batch.totalFeedConsumed, 0)
-    const farmWeightSold = farmBatches.reduce((sum, batch) => sum + batch.totalWeightSold, 0)
-    const farmFCR = calculateFCR(farmFeedConsumed, farmWeightSold)
+  const farmMetrics = farms.map((farm) => {
+    const farmBatches = batches.filter((batch) => batch.farmId === farm._id);
+    const farmFeedConsumed = farmBatches.reduce(
+      (sum, batch) => sum + batch.totalFeedConsumed,
+      0
+    );
+    const farmWeightSold = farmBatches.reduce(
+      (sum, batch) => sum + batch.totalWeightSold,
+      0
+    );
+    const farmFCR = calculateFCR(farmFeedConsumed, farmWeightSold);
     const farmActiveBirds = farmBatches
-      .filter(batch => batch.status === 'active')
-      .reduce((sum, batch) => sum + batch.currentBirdCount, 0)
-    
+      .filter((batch) => batch.status === "active")
+      .reduce((sum, batch) => sum + batch.currentBirdCount, 0);
+
     return {
       ...farm,
       fcr: farmFCR,
       activeBirds: farmActiveBirds,
-      totalBatches: farmBatches.length
-    }
-  })
+      totalBatches: farmBatches.length,
+    };
+  });
 
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div className="text-center sm:text-left">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-2">Dashboard</h1>
-        <p className="text-slate-600 text-sm sm:text-base lg:text-lg font-medium">Overview of your poultry farm operations</p>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text mb-2">
+          Dashboard
+        </h1>
+        <p className="text-slate-600 text-sm sm:text-base lg:text-lg font-medium">
+          Overview of your poultry farm operations
+        </p>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatsCard
           title="Total Active Birds"
-          value={totalActiveBirds.toLocaleString('en-IN')}
+          value={totalActiveBirds.toLocaleString("en-IN")}
           icon={Egg}
           iconColor="from-blue-500 to-blue-600"
-          change={{ value: 12, type: 'increase' }}
+          change={{ value: 12, type: "increase" }}
         />
-        
+
         <StatsCard
           title="Total Farms"
           value={farms.length}
           icon={Building2}
           iconColor="from-green-500 to-green-600"
         />
-        
+
         <StatsCard
           title="Mortality Rate"
-          value={`${overallMortalityRate}%`}
+          value={formatPercent(overallMortalityRate)}
           icon={AlertTriangle}
           iconColor="from-red-500 to-red-600"
-          change={{ value: 2.3, type: 'decrease' }}
+          change={{ value: 2.3, type: "decrease" }}
         />
-        
+
         <StatsCard
           title="Average FCR"
           value={averageFCR}
           icon={Activity}
           iconColor="from-purple-500 to-purple-600"
-          change={{ value: 5.2, type: 'increase' }}
+          change={{ value: 5.2, type: "increase" }}
         />
       </div>
 
@@ -93,23 +141,23 @@ export default async function DashboardPage() {
           value={formatCurrency(totalRevenue)}
           icon={IndianRupee}
           iconColor="from-emerald-500 to-emerald-600"
-          change={{ value: 18.5, type: 'increase' }}
+          change={{ value: 18.5, type: "increase" }}
         />
-        
+
         <StatsCard
           title="Total Expenditure"
           value={formatCurrency(totalExpenditure)}
           icon={Target}
           iconColor="from-orange-500 to-red-600"
-          change={{ value: 8.2, type: 'increase' }}
+          change={{ value: 8.2, type: "increase" }}
         />
-        
+
         <StatsCard
           title="Net Profit"
           value={formatCurrency(totalRevenue - totalExpenditure)}
           icon={TrendingUp}
           iconColor="from-green-500 to-emerald-600"
-          change={{ value: 25.3, type: 'increase' }}
+          change={{ value: 25.3, type: "increase" }}
         />
       </div>
 
@@ -124,35 +172,58 @@ export default async function DashboardPage() {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {farmMetrics.map((farm) => (
-              <div key={farm._id} className="group relative p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-white border border-slate-200/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div
+                key={farm._id}
+                className="group relative p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-white border border-slate-200/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              >
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full -translate-y-10 translate-x-10" />
-                
+
                 <div className="relative">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-base sm:text-lg text-slate-800">{farm.name}</h3>
+                    <h3 className="font-bold text-base sm:text-lg text-slate-800">
+                      {farm.name}
+                    </h3>
                     <div className="p-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg">
                       <Building2 className="h-4 w-4 text-white" />
                     </div>
                   </div>
-                  
-                  <p className="text-xs sm:text-sm text-slate-600 mb-4 font-medium">{farm.location}</p>
-                  
+
+                  <p className="text-xs sm:text-sm text-slate-600 mb-4 font-medium">
+                    {farm.location}
+                  </p>
+
                   <div className="space-y-2 sm:space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs sm:text-sm text-slate-600">Active Birds:</span>
-                      <span className="font-bold text-xs sm:text-sm text-slate-800">{farm.activeBirds.toLocaleString('en-IN')}</span>
+                      <span className="text-xs sm:text-sm text-slate-600">
+                        Active Birds:
+                      </span>
+                      <span className="font-bold text-xs sm:text-sm text-slate-800">
+                        {farm.activeBirds.toLocaleString("en-IN")}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs sm:text-sm text-slate-600">Total Batches:</span>
-                      <span className="font-bold text-xs sm:text-sm text-slate-800">{farm.totalBatches}</span>
+                      <span className="text-xs sm:text-sm text-slate-600">
+                        Total Batches:
+                      </span>
+                      <span className="font-bold text-xs sm:text-sm text-slate-800">
+                        {farm.totalBatches}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs sm:text-sm text-slate-600">Farm FCR:</span>
-                      <span className="font-bold text-xs sm:text-sm text-slate-800">{farm.fcr || 'N/A'}</span>
+                      <span className="text-xs sm:text-sm text-slate-600">
+                        Farm FCR:
+                      </span>
+                      <span className="font-bold text-xs sm:text-sm text-slate-800">
+                        {farm.fcr || "N/A"}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs sm:text-sm text-slate-600">Capacity:</span>
-                      <span className="font-bold text-xs sm:text-sm text-slate-800">{farm.capacity.toLocaleString('en-IN')}</span>
+                      <span className="text-xs sm:text-sm text-slate-600">
+                        Capacity:
+                      </span>
+                      <span className="font-bold text-xs sm:text-sm text-slate-800">
+                        {farm.capacity.toLocaleString("en-IN")}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -179,39 +250,57 @@ export default async function DashboardPage() {
           ) : (
             <div className="space-y-4">
               {activeBatches.map((batch) => {
-                const age = Math.floor((Date.now() - batch.startDate.getTime()) / (1000 * 60 * 60 * 24))
-                const farm = farms.find(f => f._id === batch.farmId)
-                
+                const age = Math.floor(
+                  (Date.now() - batch.startDate.getTime()) /
+                    (1000 * 60 * 60 * 24)
+                );
+                const farm = farms.find((f) => f._id === batch.farmId);
+
                 return (
-                  <div key={batch._id} className="group flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-white to-slate-50/50 border border-slate-200/60 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 space-y-3 sm:space-y-0">
+                  <div
+                    key={batch._id}
+                    className="group flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-white to-slate-50/50 border border-slate-200/60 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 space-y-3 sm:space-y-0"
+                  >
                     <div className="flex items-center space-x-3 sm:space-x-4 flex-1">
                       <div className="p-2 sm:p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl">
                         <Egg className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-sm sm:text-base text-slate-800">{batch.breed} - {farm?.name}</h3>
+                        <h3 className="font-bold text-sm sm:text-base text-slate-800">
+                          {batch.breed} - {farm?.name}
+                        </h3>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs sm:text-sm text-slate-600 mt-1 space-y-1 sm:space-y-0">
                           <span className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3" />
                             <span>Age: {age} days</span>
                           </span>
-                          <span>Birds: {batch.currentBirdCount.toLocaleString('en-IN')}</span>
+                          <span>
+                            Birds:{" "}
+                            {batch.currentBirdCount.toLocaleString("en-IN")}
+                          </span>
                         </div>
                       </div>
                     </div>
                     <div className="text-left sm:text-right">
-                      <p className="font-bold text-sm sm:text-base text-slate-800">Mortality: {batch.totalMortality}</p>
+                      <p className="font-bold text-sm sm:text-base text-slate-800">
+                        Mortality: {batch.totalMortality}
+                      </p>
                       <p className="text-xs sm:text-sm text-slate-600">
-                        Rate: {calculateMortalityRate(batch.totalMortality, batch.initialChickCount)}%
+                        Rate:{" "}
+                        {calculateMortalityRate(
+                          batch.totalMortality,
+                          batch.initialChickCount
+                        )}
+                        %
                       </p>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           )}
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -29,3 +29,8 @@ export function calculateMortalityRate(mortality: number, initialCount: number):
   if (initialCount === 0) return 0
   return Number(((mortality / initialCount) * 100).toFixed(2))
 }
+
+export function formatPercent(value: number, digits: number = 2): string {
+  if (Number.isNaN(value) || !Number.isFinite(value)) return '0%'
+  return `${value.toFixed(digits)}%`
+}

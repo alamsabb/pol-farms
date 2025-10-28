@@ -28,12 +28,16 @@ import {
   formatCurrency,
   calculateFCR,
   calculateMortalityRate,
+  formatPercent,
 } from "@/shared/utils";
 import { useBatches } from "@/features/batches/hooks/use-batches";
 import { useFarms } from "@/features/farms/hooks/use-farms";
 import { useSales } from "@/features/sales/hooks/use-sales";
 import { useVendors } from "@/features/vendors/hooks/use-vendors";
-import { useCreateDailyRecord } from "@/features/batches/hooks/use-daily-records";
+import {
+  useCreateDailyRecord,
+  useDailyRecords,
+} from "@/features/batches/hooks/use-daily-records";
 import { DailyRecordFormData } from "@/shared/schemas/validation";
 import { Loader } from "@/shared/components/ui/loader";
 
@@ -49,11 +53,13 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
   const [recordsPage, setRecordsPage] = useState(1);
   const recordsPerPage = 5;
   const router = useRouter();
-  const { data: batches = [], isLoading } = useBatches();
-  const { data: farms = [] } = useFarms();
-  const { data: sales = [] } = useSales();
-  const { data: vendors = [] } = useVendors();
+  const { data: batches = [], isLoading: isBatchesLoading } = useBatches();
+  const { data: farms = [], isLoading: isFarmsLoading } = useFarms();
+  const { data: sales = [], isLoading: isSalesLoading } = useSales();
+  const { data: vendors = [], isLoading: isVendorsLoading } = useVendors();
   const createDailyRecordMutation = useCreateDailyRecord();
+  const { data: dailyRecords = [], isLoading: isDailyLoading } =
+    useDailyRecords(batchId);
 
   const batch = batches.find((b) => b._id === batchId);
   const farm = farms.find((f) => f._id === batch?.farmId);
@@ -70,8 +76,6 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     salesPage * recordsPerPage
   );
 
-  // Mock daily records for now (you'll need to fetch these)
-  const dailyRecords: any[] = []; // Replace with actual daily records
   const totalRecordsPages = Math.ceil(dailyRecords.length / recordsPerPage);
   const paginatedRecords = dailyRecords.slice(
     (recordsPage - 1) * recordsPerPage,
@@ -87,7 +91,14 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     }
   };
 
-  if (isLoading) {
+  const isAnyLoading =
+    isBatchesLoading ||
+    isFarmsLoading ||
+    isSalesLoading ||
+    isVendorsLoading ||
+    isDailyLoading;
+
+  if (isAnyLoading) {
     return <Loader text="Loading Batch Details" />;
   }
 
@@ -185,7 +196,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
               <div>
                 <p className="text-sm text-slate-500">Mortality Rate</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {mortalityRate}%
+                  {formatPercent(mortalityRate)}
                 </p>
               </div>
             </div>
@@ -394,7 +405,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
                           {record.date.toLocaleDateString("en-IN")}
                         </p>
                         <p className="text-sm text-slate-600">
-                          Feed: {record.feedBags} bags • Mortality:{" "}
+                          Feed: {record.feedKg} kg • Mortality:{" "}
                           {record.mortality}
                         </p>
                       </div>
