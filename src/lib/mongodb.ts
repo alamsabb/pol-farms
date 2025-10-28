@@ -30,6 +30,5 @@ export default clientPromise
 export async function getDb(dbName?: string): Promise<Db> {
   const client = await clientPromise
   const resolvedName = dbName || process.env.DB_NAME || 'poultry-farm'
-  console.log(resolvedName)
   return client.db(resolvedName)
 }

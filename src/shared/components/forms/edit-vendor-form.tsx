@@ -6,18 +6,27 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { vendorSchema, type VendorFormData } from "@/shared/schemas/validation";
+import { useEffect } from "react";
 
-interface AddVendorFormProps {
-  onSubmit: (data: VendorFormData) => void;
+interface EditVendorFormProps {
+  vendor: {
+    _id?: string;
+    name: string;
+    company: string;
+    contact: string;
+    address: string;
+  };
+  onSubmit: (data: VendorFormData & { id: string }) => void;
   onCancel: () => void;
   isLoading: boolean;
 }
 
-export function AddVendorForm({
+export function EditVendorForm({
+  vendor,
   onSubmit,
   onCancel,
   isLoading,
-}: AddVendorFormProps) {
+}: EditVendorFormProps) {
   const {
     register,
     handleSubmit,
@@ -25,14 +34,33 @@ export function AddVendorForm({
     reset,
   } = useForm<VendorFormData>({
     resolver: zodResolver(vendorSchema),
+    defaultValues: {
+      name: vendor.name,
+      company: vendor.company,
+      contact: vendor.contact,
+      address: vendor.address,
+    },
   });
+
+  // Reset form when vendor changes
+  useEffect(() => {
+    reset({
+      name: vendor.name,
+      company: vendor.company,
+      contact: vendor.contact,
+      address: vendor.address,
+    });
+  }, [vendor, reset]);
 
   const handleFormSubmit = async (data: VendorFormData) => {
     try {
-      onSubmit(data);
-      reset(); // reset form after successful submission
+      if (!vendor._id) {
+        console.error("Vendor ID is missing");
+        return;
+      }
+      onSubmit({ ...data, id: vendor._id });
     } catch (err) {
-      console.error("Error adding vendor:", err);
+      console.error("Error updating vendor:", err);
     }
   };
 
@@ -100,7 +128,7 @@ export function AddVendorForm({
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting || isLoading}>
-          {isSubmitting || isLoading ? "Adding..." : "Add Vendor"}
+          {isSubmitting || isLoading ? "Updating..." : "Update Vendor"}
         </Button>
       </div>
     </form>

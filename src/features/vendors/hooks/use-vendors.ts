@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createVendor, getVendors } from '@/lib/actions'
+import { createVendor, getVendors, updateVendor, deleteVendor } from '@/lib/actions'
 import { VendorFormData } from '@/shared/schemas/validation'
 
 export function useVendors() {
@@ -22,6 +22,38 @@ export function useCreateVendor() {
       formData.append('contact', data.contact)
       formData.append('address', data.address)
       return createVendor(formData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendors'] })
+    },
+  })
+}
+
+export function useUpdateVendor() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (data: VendorFormData & { id: string }) => {
+      const formData = new FormData()
+      formData.append('id', data.id)
+      formData.append('name', data.name)
+      formData.append('company', data.company)
+      formData.append('contact', data.contact)
+      formData.append('address', data.address)
+      return updateVendor(formData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendors'] })
+    },
+  })
+}
+
+export function useDeleteVendor() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (vendorId: string) => {
+      return deleteVendor(vendorId)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendors'] })

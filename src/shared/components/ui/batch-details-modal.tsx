@@ -16,6 +16,7 @@ import {
   calculateFCR,
   calculateMortalityRate,
   formatPercent,
+  calculateBatchAge,
 } from "@/shared/utils";
 import { DailyRecordFormData } from "@/shared/schemas/validation";
 
@@ -62,9 +63,7 @@ export function BatchDetailsModal({
 
   if (!batch) return null;
 
-  const age = Math.floor(
-    (Date.now() - batch.startDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const age = calculateBatchAge(batch.startDate);
   const mortalityRate = calculateMortalityRate(
     batch.totalMortality,
     batch.initialChickCount

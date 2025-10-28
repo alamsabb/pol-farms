@@ -29,7 +29,15 @@ import {
   calculateFCR,
   calculateMortalityRate,
   formatPercent,
+  calculateBatchAge,
 } from "@/shared/utils";
+import {
+  calculateRevenueMetrics,
+  formatROI,
+  formatProfit,
+  getProfitColor,
+  getROIColor,
+} from "@/shared/utils/revenue-calculations";
 import { useBatches } from "@/features/batches/hooks/use-batches";
 import { useFarms } from "@/features/farms/hooks/use-farms";
 import { useSales } from "@/features/sales/hooks/use-sales";
@@ -68,6 +76,11 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     (sum, sale) => sum + sale.totalAmount,
     0
   );
+
+  // Calculate comprehensive revenue metrics
+  const revenueMetrics = batch
+    ? calculateRevenueMetrics(batch, batchSales, dailyRecords)
+    : null;
 
   // Pagination logic
   const totalSalesPages = Math.ceil(batchSales.length / recordsPerPage);
@@ -111,9 +124,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     );
   }
 
-  const age = Math.floor(
-    (Date.now() - batch.startDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const age = calculateBatchAge(batch.startDate);
   const mortalityRate = calculateMortalityRate(
     batch.totalMortality,
     batch.initialChickCount
@@ -162,7 +173,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
@@ -214,21 +225,80 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <IndianRupee className="h-8 w-8 text-emerald-500" />
-              <div>
-                <p className="text-sm text-slate-500">Revenue</p>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(totalRevenue)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Revenue Overview Cards */}
+      {revenueMetrics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <IndianRupee className="h-8 w-8 text-emerald-500" />
+                <div>
+                  <p className="text-sm text-slate-500">Total Revenue</p>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(revenueMetrics.totalRevenue || 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                {revenueMetrics.netProfit >= 0 ? (
+                  <TrendingUp className="h-8 w-8 text-green-500" />
+                ) : (
+                  <TrendingDown className="h-8 w-8 text-red-500" />
+                )}
+                <div>
+                  <p className="text-sm text-slate-500">Net Profit</p>
+                  <p
+                    className={`text-2xl font-bold ${getProfitColor(
+                      revenueMetrics.netProfit || 0
+                    )}`}
+                  >
+                    {formatProfit(revenueMetrics.netProfit || 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <Activity className="h-8 w-8 text-blue-500" />
+                <div>
+                  <p className="text-sm text-slate-500">ROI</p>
+                  <p
+                    className={`text-2xl font-bold ${getROIColor(
+                      revenueMetrics.roi || 0
+                    )}`}
+                  >
+                    {formatROI(revenueMetrics.roi || 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <Weight className="h-8 w-8 text-orange-500" />
+                <div>
+                  <p className="text-sm text-slate-500">Avg Price/Kg</p>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(revenueMetrics.averagePricePerKg || 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Detailed Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -304,6 +374,89 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Revenue Details Section */}
+      {revenueMetrics && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Total Revenue:</span>
+                <span className="font-medium text-green-600">
+                  {formatCurrency(revenueMetrics.totalRevenue || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Average Price/Kg:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.averagePricePerKg || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Average Price/Bird:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.averagePricePerBird || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Total Weight Sold:</span>
+                <span className="font-medium">
+                  {(revenueMetrics.totalWeightSold || 0).toFixed(2)} kg
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Total Birds Sold:</span>
+                <span className="font-medium">
+                  {(revenueMetrics.totalBirdsSold || 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Cost Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Chick Cost:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.totalChickCost || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Feed Cost:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.totalFeedCost || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Medicine Cost:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.totalMedicineCost || 0)}
+                </span>
+              </div>
+              {/* <div className="flex justify-between">
+                <span className="text-slate-600">Operating Cost:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.totalOperatingCost || 0)}
+                </span>
+              </div> */}
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-slate-600 font-semibold">
+                  Total Cost:
+                </span>
+                <span className="font-bold">
+                  {formatCurrency(revenueMetrics.totalCost || 0)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Sales Records Accordion */}
       <Card>

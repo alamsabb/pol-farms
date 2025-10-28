@@ -16,6 +16,7 @@ import {
   calculateFCR,
   calculateMortalityRate,
   formatPercent,
+  calculateBatchAge,
 } from "@/shared/utils";
 
 interface Batch {
@@ -117,9 +118,7 @@ export function BatchesClient() {
         ) : (
           batches.map((batch) => {
             const farm = farms.find((f) => f._id === batch.farmId);
-            const age = Math.floor(
-              (Date.now() - batch.startDate.getTime()) / (1000 * 60 * 60 * 24)
-            );
+            const age = calculateBatchAge(batch.startDate);
             const mortalityRate = calculateMortalityRate(
               batch.totalMortality,
               batch.initialChickCount

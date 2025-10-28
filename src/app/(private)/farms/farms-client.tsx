@@ -136,7 +136,7 @@ export function FarmsClient() {
                     <DropdownMenu.Content
                       align="end"
                       sideOffset={8}
-                      className="w-44 rounded-xl border border-slate-200 bg-white shadow-xl p-1"
+                      className="w-44 rounded-xl border border-slate-200 bg-white shadow-xl p-1 z-50"
                     >
                       <DropdownMenu.Item
                         className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-slate-50 cursor-pointer"

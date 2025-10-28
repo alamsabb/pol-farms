@@ -24,8 +24,12 @@ export const batchSchema = z.object({
 export const vendorSchema = z.object({
   name: z.string().min(1, 'Vendor name is required').max(100, 'Name too long'),
   company: z.string().min(1, 'Company name is required').max(100, 'Company name too long'),
-  contact: z.string().min(10, 'Contact number must be at least 10 digits').max(15, 'Contact number too long'),
-  address: z.string().min(1, 'Address is required').max(300, 'Address too long')
+  contact: z
+    .string()
+    .min(10, 'Contact number must be at least 10 digits')
+    .max(15, 'Contact number too long')
+    .regex(/^\d+$/, 'Contact number must contain only digits'),
+    address: z.string().min(1, 'Address is required').max(300, 'Address too long')
 })
 
 export const saleSchema = z.object({
