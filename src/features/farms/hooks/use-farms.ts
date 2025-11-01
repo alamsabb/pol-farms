@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFarm, deleteFarm, getFarms } from '@/lib/actions'
+import { createFarm, deleteFarm, getFarms, updateFarm } from '@/lib/actions'
 import { FarmFormData } from '@/shared/schemas/validation'
 
 export function useFarms() {
@@ -33,6 +33,24 @@ export function useDeleteFarm() {
   
   return useMutation({
     mutationFn: deleteFarm,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['farms'] })
+    },
+  })
+}
+
+export function useUpdateFarm() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (data: { id: string, name: string, location: string, capacity: number }) => {
+      const formData = new FormData()
+      formData.append('id', data.id)
+      formData.append('name', data.name)
+      formData.append('location', data.location)
+      formData.append('capacity', data.capacity.toString())
+      return updateFarm(formData)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['farms'] })
     },

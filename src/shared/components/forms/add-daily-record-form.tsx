@@ -50,18 +50,17 @@ export function AddDailyRecordForm({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="feedBags">Feed Bags Used</Label>
+          <Label htmlFor="feedKg">Feed Used (kg)</Label>
           <Input
-            id="feedBags"
+            id="feedKg"
             type="number"
-            {...register("feedBags", { valueAsNumber: true })}
-            placeholder="Enter number of feed bags"
-            className={errors.feedBags ? "border-red-500" : ""}
+            step="0.01"
+            {...register("feedKg", { valueAsNumber: true })}
+            placeholder="Enter feed in kilograms"
+            className={errors.feedKg ? "border-red-500" : ""}
           />
-          {errors.feedBags && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.feedBags.message}
-            </p>
+          {errors.feedKg && (
+            <p className="text-red-500 text-sm mt-1">{errors.feedKg.message}</p>
           )}
         </div>
 

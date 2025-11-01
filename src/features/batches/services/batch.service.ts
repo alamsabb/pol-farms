@@ -1,14 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import clientPromise from '@/lib/mongodb'
+import clientPromise, { getDb } from '@/lib/mongodb'
 import { Batch, DailyRecord } from '@/types'
 import { batchSchema, dailyRecordSchema } from '@/shared/schemas'
 import { ObjectId } from 'mongodb'
 
 export async function createBatch(formData: FormData) {
-  const client = await clientPromise
-  const db = client.db('poultry-farm')
+  const db = await getDb()
   
   const rawData = {
     farmId: formData.get('farmId') as string,
@@ -27,6 +26,8 @@ export async function createBatch(formData: FormData) {
     currentBirdCount: validatedData.initialChickCount,
     totalMortality: 0,
     totalFeedConsumed: 0,
+    totalWeightSold: 0,
+    totalBirdsSold: 0,
     status: 'active',
     createdAt: new Date(),
   }
@@ -36,8 +37,7 @@ export async function createBatch(formData: FormData) {
 }
 
 export async function getBatches(): Promise<Batch[]> {
-  const client = await clientPromise
-  const db = client.db('poultry-farm')
+  const db = await getDb()
   
   const batches = await db.collection('batches').aggregate([
     {
@@ -63,19 +63,21 @@ export async function getBatches(): Promise<Batch[]> {
 }
 
 export async function addDailyRecord(formData: FormData) {
-  const client = await clientPromise
-  const db = client.db('poultry-farm')
+  const db = await getDb()
   
   const rawData = {
     batchId: formData.get('batchId') as string,
-    feedBags: parseInt(formData.get('feedBags') as string),
+    feedKg: parseFloat(formData.get('feedKg') as string),
     mortality: parseInt(formData.get('mortality') as string),
+    feedCost: parseFloat((formData.get('feedCost') as string) || '0'),
+    medicineUsed: (formData.get('medicineUsed') as string) || undefined,
+    medicineCost: formData.get('medicineCost') ? parseFloat(formData.get('medicineCost') as string) : undefined,
     averageWeight: formData.get('averageWeight') ? parseFloat(formData.get('averageWeight') as string) : undefined,
     notes: formData.get('notes') as string || undefined,
   }
 
   const validatedData = dailyRecordSchema.parse(rawData)
-  const feedWeight = validatedData.feedBags * 50
+  const feedWeight = validatedData.feedKg
   
   const record: Omit<DailyRecord, '_id'> = {
     ...validatedData,

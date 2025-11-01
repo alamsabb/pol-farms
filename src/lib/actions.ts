@@ -1,15 +1,14 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import clientPromise from '@/lib/mongodb'
-import { Farm, Batch, Vendor, Sale } from '@/types'
+import clientPromise, { getDb } from '@/lib/mongodb'
+import { Farm, Batch, Vendor, Sale, DailyRecord } from '@/types'
 import { ObjectId } from 'mongodb'
 
 // Farm Actions
 export async function createFarm(formData: FormData) {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const farm: Omit<Farm, '_id'> = {
       name: formData.get('name') as string,
@@ -31,8 +30,7 @@ export async function createFarm(formData: FormData) {
 
 export async function getFarms(): Promise<Farm[]> {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const farms = await db.collection('farms').find({}).toArray()
     return farms.map(farm => ({
@@ -47,8 +45,7 @@ export async function getFarms(): Promise<Farm[]> {
 
 export async function deleteFarm(farmId: string) {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     await db.collection('farms').deleteOne({ _id: new ObjectId(farmId) })
     revalidatePath('/farms')
@@ -60,11 +57,39 @@ export async function deleteFarm(farmId: string) {
   }
 }
 
+// Farm Update
+export async function updateFarm(formData: FormData) {
+  try {
+    const db = await getDb()
+    const id = formData.get('id') as string
+    const name = formData.get('name') as string
+    const location = formData.get('location') as string
+    const capacity = parseInt(formData.get('capacity') as string)
+
+    await db.collection('farms').updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          name,
+          location,
+          capacity,
+          updatedAt: new Date(),
+        },
+      }
+    )
+
+    revalidatePath('/farms')
+    return { success: true }
+  } catch (error) {
+    console.error('Error updating farm:', error)
+    return { success: false, error: 'Failed to update farm' }
+  }
+}
+
 // Batch Actions
 export async function createBatch(formData: FormData) {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const batch: Omit<Batch, '_id'> = {
       farmId: formData.get('farmId') as string,
@@ -79,6 +104,22 @@ export async function createBatch(formData: FormData) {
       totalFeedConsumed: 0,
       totalWeightSold: 0,
       totalBirdsSold: 0,
+      // Initialize revenue fields
+      totalRevenue: 0,
+      averagePricePerKg: 0,
+      averagePricePerBird: 0,
+      totalProfit: 0,
+      totalLoss: 0,
+      netProfit: 0,
+      roi: 0,
+      totalFeedCost: 0,
+      totalMedicineCost: 0,
+      totalChickCost: parseInt(formData.get('initialChickCount') as string) * parseFloat(formData.get('costPerChick') as string),
+      totalOperatingCost: 0,
+      mortalityRate: 0,
+      fcr: 0,
+      averageWeight: 0,
+      daysToMarket: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -95,8 +136,7 @@ export async function createBatch(formData: FormData) {
 
 export async function getBatches(): Promise<Batch[]> {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const batches = await db.collection('batches').find({}).toArray()
     return batches.map(batch => ({
@@ -110,11 +150,87 @@ export async function getBatches(): Promise<Batch[]> {
   }
 }
 
+export async function updateBatchRevenueMetrics(batchId: string) {
+  try {
+    const db = await getDb()
+    
+    // Get batch data
+    const batch = await db.collection('batches').findOne({ _id: new ObjectId(batchId) })
+    if (!batch) return { success: false, error: 'Batch not found' }
+
+    // Get related sales and daily records
+    const sales = await db.collection('sales').find({ batchId }).toArray()
+    const dailyRecords = await db.collection('dailyRecords').find({ batchId }).toArray()
+
+    // Calculate revenue metrics
+    const totalRevenue = sales.reduce((sum, sale) => sum + sale.totalAmount, 0)
+    const totalWeightSold = sales.reduce((sum, sale) => sum + sale.totalWeight, 0)
+    const totalBirdsSold = sales.reduce((sum, sale) => sum + sale.birdsSold, 0)
+    
+    const averagePricePerKg = totalWeightSold > 0 ? totalRevenue / totalWeightSold : 0
+    const averagePricePerBird = totalBirdsSold > 0 ? totalRevenue / totalBirdsSold : 0
+    
+    const totalChickCost = batch.initialChickCount * batch.costPerChick
+    const totalFeedCost = dailyRecords.reduce((sum, record) => sum + (record.feedCost || 0), 0)
+    const totalMedicineCost = dailyRecords.reduce((sum, record) => sum + (record.medicineCost || 0), 0)
+    const totalOperatingCost = totalFeedCost + totalMedicineCost
+    const totalCost = totalChickCost + totalOperatingCost
+    
+    const netProfit = totalRevenue - totalCost
+    const roi = totalCost > 0 ? (netProfit / totalCost) * 100 : 0
+    
+    const mortalityRate = batch.initialChickCount > 0 
+      ? (batch.totalMortality / batch.initialChickCount) * 100 
+      : 0
+    
+    const fcr = totalWeightSold > 0 ? batch.totalFeedConsumed / totalWeightSold : 0
+    const averageWeight = totalBirdsSold > 0 ? totalWeightSold / totalBirdsSold : 0
+    
+    const daysToMarket = batch.startDate 
+      ? Math.ceil((new Date().getTime() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24))
+      : 0
+
+    // Update batch with calculated metrics
+    await db.collection('batches').updateOne(
+      { _id: new ObjectId(batchId) },
+      {
+        $set: {
+          totalRevenue,
+          averagePricePerKg,
+          averagePricePerBird,
+          totalProfit: netProfit > 0 ? netProfit : 0,
+          totalLoss: netProfit < 0 ? Math.abs(netProfit) : 0,
+          netProfit,
+          roi,
+          totalFeedCost,
+          totalMedicineCost,
+          totalChickCost,
+          totalOperatingCost,
+          mortalityRate,
+          fcr,
+          averageWeight,
+          daysToMarket,
+          totalWeightSold,
+          totalBirdsSold,
+          updatedAt: new Date(),
+        },
+      }
+    )
+
+    revalidatePath('/batches')
+    revalidatePath(`/batches/${batchId}`)
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error updating batch revenue metrics:', error)
+    return { success: false, error: 'Failed to update batch revenue metrics' }
+  }
+}
+
 // Vendor Actions
 export async function createVendor(formData: FormData) {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const vendor: Omit<Vendor, '_id'> = {
       name: formData.get('name') as string,
@@ -137,8 +253,7 @@ export async function createVendor(formData: FormData) {
 
 export async function getVendors(): Promise<Vendor[]> {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const vendors = await db.collection('vendors').find({}).toArray()
     return vendors.map(vendor => ({
@@ -151,11 +266,54 @@ export async function getVendors(): Promise<Vendor[]> {
   }
 }
 
+export async function updateVendor(formData: FormData) {
+  try {
+    const db = await getDb()
+    const id = formData.get('id') as string
+    const name = formData.get('name') as string
+    const company = formData.get('company') as string
+    const contact = formData.get('contact') as string
+    const address = formData.get('address') as string
+
+    await db.collection('vendors').updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          name,
+          company,
+          contact,
+          address,
+          updatedAt: new Date(),
+        },
+      }
+    )
+
+    revalidatePath('/vendors')
+    return { success: true }
+  } catch (error) {
+    console.error('Error updating vendor:', error)
+    return { success: false, error: 'Failed to update vendor' }
+  }
+}
+
+export async function deleteVendor(vendorId: string) {
+  try {
+    const db = await getDb()
+    
+    await db.collection('vendors').deleteOne({ _id: new ObjectId(vendorId) })
+    revalidatePath('/vendors')
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting vendor:', error)
+    return { success: false, error: 'Failed to delete vendor' }
+  }
+}
+
 // Sale Actions
 export async function createSale(formData: FormData) {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const batchId = formData.get('batchId') as string
     const birdsSold = parseInt(formData.get('birdsSold') as string)
@@ -210,6 +368,9 @@ export async function createSale(formData: FormData) {
     revalidatePath('/sales')
     revalidatePath('/batches')
     
+    // Update batch revenue metrics
+    await updateBatchRevenueMetrics(batchId)
+    
     return { success: true }
   } catch (error) {
     console.error('Error creating sale:', error)
@@ -219,8 +380,7 @@ export async function createSale(formData: FormData) {
 
 export async function getSales(): Promise<Sale[]> {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const sales = await db.collection('sales').find({}).sort({ createdAt: -1 }).toArray()
     return sales.map(sale => ({
@@ -234,11 +394,27 @@ export async function getSales(): Promise<Sale[]> {
   }
 }
 
+// Daily Records - Query
+export async function getDailyRecords(batchId?: string): Promise<DailyRecord[]> {
+  try {
+    const db = await getDb()
+    const filter = batchId ? { batchId } : {}
+    const records = await db.collection('dailyRecords').find(filter).sort({ date: -1 }).toArray()
+    return records.map((r) => ({
+      ...r,
+      _id: r._id.toString(),
+      date: new Date(r.date),
+    })) as DailyRecord[]
+  } catch (error) {
+    console.error('Error fetching daily records:', error)
+    return []
+  }
+}
+
 // Daily Record Actions
 export async function createDailyRecord(formData: FormData) {
   try {
-    const client = await clientPromise
-    const db = client.db('poultry-farm')
+    const db = await getDb()
     
     const batchId = formData.get('batchId') as string
     const mortality = parseInt(formData.get('mortality') as string) || 0
@@ -270,7 +446,7 @@ export async function createDailyRecord(formData: FormData) {
     const dailyRecord = {
       batchId,
       date: new Date(date),
-      feedBags: parseInt(formData.get('feedBags') as string) || 0,
+      feedKg: parseFloat(formData.get('feedKg') as string) || 0,
       feedCost,
       mortality,
       medicineUsed: formData.get('medicineUsed') as string || '',
@@ -293,7 +469,7 @@ export async function createDailyRecord(formData: FormData) {
           $inc: { 
             currentBirdCount: -mortality,
             totalMortality: mortality,
-            totalFeedConsumed: dailyRecord.feedBags,
+            totalFeedConsumed: dailyRecord.feedKg,
             totalProductionCost: totalDailyCost
           },
           $set: { 
@@ -307,7 +483,7 @@ export async function createDailyRecord(formData: FormData) {
         { _id: new ObjectId(batchId) },
         { 
           $inc: { 
-            totalFeedConsumed: dailyRecord.feedBags,
+            totalFeedConsumed: dailyRecord.feedKg,
             totalProductionCost: totalDailyCost
           },
           $set: { updatedAt: new Date() }
@@ -316,6 +492,9 @@ export async function createDailyRecord(formData: FormData) {
     }
     
     revalidatePath('/batches')
+    
+    // Update batch revenue metrics
+    await updateBatchRevenueMetrics(batchId)
     
     return { success: true }
   } catch (error) {

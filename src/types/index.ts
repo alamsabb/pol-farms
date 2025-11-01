@@ -23,6 +23,24 @@ export interface Batch {
   totalWeightSold: number
   totalBirdsSold: number
   totalProductionCost?: number
+  // Revenue Details
+  totalRevenue?: number
+  averagePricePerKg?: number
+  averagePricePerBird?: number
+  totalProfit?: number
+  totalLoss?: number
+  netProfit?: number
+  roi?: number // Return on Investment percentage
+  // Cost Breakdown
+  totalFeedCost?: number
+  totalMedicineCost?: number
+  totalChickCost?: number
+  totalOperatingCost?: number
+  // Performance Metrics
+  mortalityRate?: number
+  fcr?: number // Feed Conversion Ratio
+  averageWeight?: number
+  daysToMarket?: number
   createdAt?: Date
   updatedAt?: Date
 }
@@ -31,7 +49,7 @@ export interface DailyRecord {
   _id?: string
   batchId: string
   date: Date
-  feedBags: number
+  feedKg: number
   feedCost: number
   mortality: number
   medicineUsed?: string
