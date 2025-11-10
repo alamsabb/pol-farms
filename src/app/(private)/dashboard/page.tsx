@@ -25,6 +25,7 @@ import {
 
 // Force dynamic rendering to ensure fresh data
 export const dynamic = "force-dynamic";
+export const revalidate = 0; // Disable caching completely
 
 export default async function DashboardPage() {
   const [farms, batches, sales] = await Promise.all([

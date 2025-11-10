@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -21,6 +22,7 @@ import { SaleFormData } from "@/shared/schemas/validation";
 
 
 export function SalesClient() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: sales = [], isLoading: salesLoading } = useSales();
   const { data: batches = [] } = useBatches();
@@ -38,6 +40,7 @@ export function SalesClient() {
     try {
       await createSaleMutation.mutateAsync(data);
       setIsModalOpen(false);
+      router.refresh(); // Refresh server components (dashboard)
     } catch (error: any) {
       alert(error.message || 'Failed to record sale');
     }

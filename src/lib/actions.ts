@@ -19,8 +19,8 @@ export async function createFarm(formData: FormData) {
     }
 
     await db.collection('farms').insertOne(farm)
-    revalidatePath('/farms')
-    revalidatePath('/dashboard')
+    revalidatePath('/farms', 'page')
+    revalidatePath('/dashboard', 'page')
     
     return { success: true }
   } catch (error) {
@@ -49,8 +49,8 @@ export async function deleteFarm(farmId: string) {
     const db = await getDb()
     
     await db.collection('farms').deleteOne({ _id: new ObjectId(farmId) })
-    revalidatePath('/farms')
-    revalidatePath('/dashboard')
+    revalidatePath('/farms', 'page')
+    revalidatePath('/dashboard', 'page')
     
     return { success: true }
   } catch (error) {
@@ -80,8 +80,8 @@ export async function updateFarm(formData: FormData) {
       }
     )
 
-    revalidatePath('/farms')
-    revalidatePath('/dashboard')
+    revalidatePath('/farms', 'page')
+    revalidatePath('/dashboard', 'page')
     return { success: true }
   } catch (error) {
     console.error('Error updating farm:', error)
@@ -128,8 +128,8 @@ export async function createBatch(formData: FormData) {
     }
 
     await db.collection('batches').insertOne(batch)
-    revalidatePath('/batches')
-    revalidatePath('/dashboard')
+    revalidatePath('/batches', 'page')
+    revalidatePath('/dashboard', 'page')
     
     return { success: true }
   } catch (error) {
@@ -221,9 +221,9 @@ export async function updateBatchRevenueMetrics(batchId: string) {
       }
     )
 
-    revalidatePath('/batches')
-    revalidatePath(`/batches/${batchId}`)
-    revalidatePath('/dashboard')
+    revalidatePath('/batches', 'page')
+    revalidatePath(`/batches/${batchId}`, 'page')
+    revalidatePath('/dashboard', 'page')
     
     return { success: true }
   } catch (error) {
@@ -370,9 +370,9 @@ export async function createSale(formData: FormData) {
       }
     )
     
-    revalidatePath('/sales')
-    revalidatePath('/batches')
-    revalidatePath('/dashboard')
+    revalidatePath('/sales', 'page')
+    revalidatePath('/batches', 'page')
+    revalidatePath('/dashboard', 'page')
     
     // Update batch revenue metrics
     await updateBatchRevenueMetrics(batchId)
@@ -497,8 +497,8 @@ export async function createDailyRecord(formData: FormData) {
       )
     }
     
-    revalidatePath('/batches')
-    revalidatePath('/dashboard')
+    revalidatePath('/batches', 'page')
+    revalidatePath('/dashboard', 'page')
     
     // Update batch revenue metrics
     await updateBatchRevenueMetrics(batchId)
