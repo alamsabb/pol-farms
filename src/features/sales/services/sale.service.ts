@@ -36,6 +36,8 @@ export async function createSale(formData: FormData) {
   )
   
   revalidatePath('/sales')
+  revalidatePath('/batches')
+  revalidatePath('/dashboard')
 }
 
 export async function getSales(): Promise<Sale[]> {

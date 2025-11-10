@@ -24,6 +24,7 @@ export async function createFarm(formData: FormData) {
 
   await db.collection('farms').insertOne(farm)
   revalidatePath('/farms')
+  revalidatePath('/dashboard')
 }
 
 export async function getFarms(): Promise<Farm[]> {
@@ -41,4 +42,5 @@ export async function deleteFarm(id: string) {
   
   await db.collection('farms').deleteOne({ _id: new ObjectId(id) })
   revalidatePath('/farms')
+  revalidatePath('/dashboard')
 }
