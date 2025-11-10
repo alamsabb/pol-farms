@@ -11,7 +11,8 @@ export const batchSchema = z.object({
   startDate: z.string().min(1, 'Start date is required').refine((date) => {
     const selectedDate = new Date(date)
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Allow any time on the current date
+    today.setHours(23, 59, 59, 999)
     return selectedDate <= today
   }, 'Start date cannot be in the future'),
   initialChickCount: z.number().min(1, 'Initial chick count must be at least 1').max(100000, 'Count too large'),
@@ -23,8 +24,12 @@ export const batchSchema = z.object({
 export const vendorSchema = z.object({
   name: z.string().min(1, 'Vendor name is required').max(100, 'Name too long'),
   company: z.string().min(1, 'Company name is required').max(100, 'Company name too long'),
-  contact: z.string().min(10, 'Contact number must be at least 10 digits').max(15, 'Contact number too long'),
-  address: z.string().min(1, 'Address is required').max(300, 'Address too long')
+  contact: z
+    .string()
+    .min(10, 'Contact number must be at least 10 digits')
+    .max(15, 'Contact number too long')
+    .regex(/^\d+$/, 'Contact number must contain only digits'),
+    address: z.string().min(1, 'Address is required').max(300, 'Address too long')
 })
 
 export const saleSchema = z.object({
@@ -49,7 +54,7 @@ export const dailyRecordSchema = z.object({
     today.setHours(23, 59, 59, 999)
     return selectedDate <= today
   }, 'Date cannot be in the future'),
-  feedBags: z.number().min(0, 'Feed bags cannot be negative').max(1000, 'Too many feed bags'),
+  feedKg: z.number().min(0, 'Feed (kg) cannot be negative').max(100000, 'Too much feed'),
   feedCost: z.number().min(0, 'Feed cost cannot be negative').max(100000, 'Feed cost too high'),
   mortality: z.number().min(0, 'Mortality cannot be negative').max(10000, 'Mortality count too high'),
   medicineUsed: z.string().max(200, 'Medicine name too long').optional(),

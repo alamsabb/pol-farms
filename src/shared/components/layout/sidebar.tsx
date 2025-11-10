@@ -146,7 +146,7 @@ export function Sidebar({
               </div>
 
               <div className={collapsed ? "lg:hidden" : ""}>
-                <div className="flex ">
+                <div className="flex items-center">
                   <span className="relative z-10 flex-1">{item.name}</span>
 
                   {/* Arrow indicator */}

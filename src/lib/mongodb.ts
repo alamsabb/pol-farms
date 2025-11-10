@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb'
+import { MongoClient, Db } from 'mongodb'
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"')
@@ -26,3 +26,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export default clientPromise
+
+export async function getDb(dbName?: string): Promise<Db> {
+  const client = await clientPromise
+  const resolvedName = dbName || process.env.DB_NAME || 'poultry-farm'
+  return client.db(resolvedName)
+}

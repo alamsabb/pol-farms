@@ -28,12 +28,24 @@ import {
   formatCurrency,
   calculateFCR,
   calculateMortalityRate,
+  formatPercent,
+  calculateBatchAge,
 } from "@/shared/utils";
+import {
+  calculateRevenueMetrics,
+  formatROI,
+  formatProfit,
+  getProfitColor,
+  getROIColor,
+} from "@/shared/utils/revenue-calculations";
 import { useBatches } from "@/features/batches/hooks/use-batches";
 import { useFarms } from "@/features/farms/hooks/use-farms";
 import { useSales } from "@/features/sales/hooks/use-sales";
 import { useVendors } from "@/features/vendors/hooks/use-vendors";
-import { useCreateDailyRecord } from "@/features/batches/hooks/use-daily-records";
+import {
+  useCreateDailyRecord,
+  useDailyRecords,
+} from "@/features/batches/hooks/use-daily-records";
 import { DailyRecordFormData } from "@/shared/schemas/validation";
 import { Loader } from "@/shared/components/ui/loader";
 
@@ -49,11 +61,13 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
   const [recordsPage, setRecordsPage] = useState(1);
   const recordsPerPage = 5;
   const router = useRouter();
-  const { data: batches = [], isLoading } = useBatches();
-  const { data: farms = [] } = useFarms();
-  const { data: sales = [] } = useSales();
-  const { data: vendors = [] } = useVendors();
+  const { data: batches = [], isLoading: isBatchesLoading } = useBatches();
+  const { data: farms = [], isLoading: isFarmsLoading } = useFarms();
+  const { data: sales = [], isLoading: isSalesLoading } = useSales();
+  const { data: vendors = [], isLoading: isVendorsLoading } = useVendors();
   const createDailyRecordMutation = useCreateDailyRecord();
+  const { data: dailyRecords = [], isLoading: isDailyLoading } =
+    useDailyRecords(batchId);
 
   const batch = batches.find((b) => b._id === batchId);
   const farm = farms.find((f) => f._id === batch?.farmId);
@@ -63,6 +77,11 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     0
   );
 
+  // Calculate comprehensive revenue metrics
+  const revenueMetrics = batch
+    ? calculateRevenueMetrics(batch, batchSales, dailyRecords)
+    : null;
+
   // Pagination logic
   const totalSalesPages = Math.ceil(batchSales.length / recordsPerPage);
   const paginatedSales = batchSales.slice(
@@ -70,8 +89,6 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     salesPage * recordsPerPage
   );
 
-  // Mock daily records for now (you'll need to fetch these)
-  const dailyRecords: any[] = []; // Replace with actual daily records
   const totalRecordsPages = Math.ceil(dailyRecords.length / recordsPerPage);
   const paginatedRecords = dailyRecords.slice(
     (recordsPage - 1) * recordsPerPage,
@@ -87,7 +104,14 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     }
   };
 
-  if (isLoading) {
+  const isAnyLoading =
+    isBatchesLoading ||
+    isFarmsLoading ||
+    isSalesLoading ||
+    isVendorsLoading ||
+    isDailyLoading;
+
+  if (isAnyLoading) {
     return <Loader text="Loading Batch Details" />;
   }
 
@@ -100,9 +124,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     );
   }
 
-  const age = Math.floor(
-    (Date.now() - batch.startDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const age = calculateBatchAge(batch.startDate);
   const mortalityRate = calculateMortalityRate(
     batch.totalMortality,
     batch.initialChickCount
@@ -113,33 +135,42 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Batches
+      <div className="flex  sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="p-2 sm:px-3 sm:py-2"
+            size="sm"
+          >
+            <ArrowLeft className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Back to Batches</span>
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold gradient-text">
-              {batch.breed} - Batch Details
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold gradient-text truncate">
+              <span>{batch.breed}</span>
+              {/* <span className="hidden sm:inline">
+                {batch.breed} - Batch Details
+              </span> */}
             </h1>
-            <p className="text-slate-600">
+            <p className="text-sm sm:text-base text-slate-600 truncate">
               {farm?.name} - {farm?.location}
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           {batch.status === "active" && (
             <Button
               onClick={() => setIsRecordModalOpen(true)}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 p-4"
+              size="sm"
             >
               <Plus className="h-4 w-4" />
               <span>Add Daily Record</span>
             </Button>
           )}
           <span
-            className={`px-3 py-1 rounded-full text-sm font-semibold ${
+            className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap ${
               batch.status === "active"
                 ? "bg-green-100 text-green-700"
                 : "bg-gray-100 text-gray-700"
@@ -151,7 +182,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-3">
@@ -185,7 +216,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
               <div>
                 <p className="text-sm text-slate-500">Mortality Rate</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {mortalityRate}%
+                  {formatPercent(mortalityRate)}
                 </p>
               </div>
             </div>
@@ -203,21 +234,80 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-3">
-              <IndianRupee className="h-8 w-8 text-emerald-500" />
-              <div>
-                <p className="text-sm text-slate-500">Revenue</p>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(totalRevenue)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Revenue Overview Cards */}
+      {revenueMetrics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <IndianRupee className="h-8 w-8 text-emerald-500" />
+                <div>
+                  <p className="text-sm text-slate-500">Total Revenue</p>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(revenueMetrics.totalRevenue || 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                {revenueMetrics.netProfit >= 0 ? (
+                  <TrendingUp className="h-8 w-8 text-green-500" />
+                ) : (
+                  <TrendingDown className="h-8 w-8 text-red-500" />
+                )}
+                <div>
+                  <p className="text-sm text-slate-500">Net Profit</p>
+                  <p
+                    className={`text-2xl font-bold ${getProfitColor(
+                      revenueMetrics.netProfit || 0
+                    )}`}
+                  >
+                    {formatProfit(revenueMetrics.netProfit || 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <Activity className="h-8 w-8 text-blue-500" />
+                <div>
+                  <p className="text-sm text-slate-500">ROI</p>
+                  <p
+                    className={`text-2xl font-bold ${getROIColor(
+                      revenueMetrics.roi || 0
+                    )}`}
+                  >
+                    {formatROI(revenueMetrics.roi || 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <Weight className="h-8 w-8 text-orange-500" />
+                <div>
+                  <p className="text-sm text-slate-500">Avg Price/Kg</p>
+                  <p className="text-2xl font-bold">
+                    {formatCurrency(revenueMetrics.averagePricePerKg || 0)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Detailed Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -293,6 +383,89 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Revenue Details Section */}
+      {revenueMetrics && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Total Revenue:</span>
+                <span className="font-medium text-green-600">
+                  {formatCurrency(revenueMetrics.totalRevenue || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Average Price/Kg:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.averagePricePerKg || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Average Price/Bird:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.averagePricePerBird || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Total Weight Sold:</span>
+                <span className="font-medium">
+                  {(revenueMetrics.totalWeightSold || 0).toFixed(2)} kg
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Total Birds Sold:</span>
+                <span className="font-medium">
+                  {(revenueMetrics.totalBirdsSold || 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Cost Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Chick Cost:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.totalChickCost || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Feed Cost:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.totalFeedCost || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Medicine Cost:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.totalMedicineCost || 0)}
+                </span>
+              </div>
+              {/* <div className="flex justify-between">
+                <span className="text-slate-600">Operating Cost:</span>
+                <span className="font-medium">
+                  {formatCurrency(revenueMetrics.totalOperatingCost || 0)}
+                </span>
+              </div> */}
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-slate-600 font-semibold">
+                  Total Cost:
+                </span>
+                <span className="font-bold">
+                  {formatCurrency(revenueMetrics.totalCost || 0)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Sales Records Accordion */}
       <Card>
@@ -394,7 +567,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
                           {record.date.toLocaleDateString("en-IN")}
                         </p>
                         <p className="text-sm text-slate-600">
-                          Feed: {record.feedBags} bags • Mortality:{" "}
+                          Feed: {record.feedKg} kg • Mortality:{" "}
                           {record.mortality}
                         </p>
                       </div>
