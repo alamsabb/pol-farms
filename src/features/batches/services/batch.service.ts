@@ -34,6 +34,7 @@ export async function createBatch(formData: FormData) {
 
   await db.collection('batches').insertOne(batch)
   revalidatePath('/batches')
+  revalidatePath('/dashboard')
 }
 
 export async function getBatches(): Promise<Batch[]> {
@@ -98,4 +99,5 @@ export async function addDailyRecord(formData: FormData) {
   )
   
   revalidatePath('/batches')
+  revalidatePath('/dashboard')
 }

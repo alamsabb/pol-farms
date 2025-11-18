@@ -99,6 +99,7 @@ export function BatchDetailsClient({ batchId }: BatchDetailsClientProps) {
     try {
       await createDailyRecordMutation.mutateAsync(data);
       setIsRecordModalOpen(false);
+      router.refresh(); // Refresh server components (dashboard)
     } catch (error: any) {
       alert(error.message || "Failed to add daily record");
     }

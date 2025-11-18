@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -30,6 +31,7 @@ import {
 import { FarmFormData } from "@/shared/schemas/validation";
 
 export function FarmsClient() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [farmToDelete, setFarmToDelete] = useState<string | null>(null);
@@ -43,6 +45,7 @@ export function FarmsClient() {
   const handleAddFarm = async (data: FarmFormData) => {
     await createFarmMutation.mutateAsync(data);
     setIsModalOpen(false);
+    router.refresh(); // Refresh server components (dashboard)
   };
 
   const handleDeleteFarmClick = (farmId: string) => {
@@ -60,6 +63,7 @@ export function FarmsClient() {
     await deleteFarmMutation.mutateAsync(farmToDelete);
     setConfirmOpen(false);
     setFarmToDelete(null);
+    router.refresh(); // Refresh server components (dashboard)
   };
 
   if (isLoading) {
@@ -211,6 +215,7 @@ export function FarmsClient() {
               });
               setEditOpen(false);
               setEditingFarm(null);
+              router.refresh(); // Refresh server components (dashboard)
             }}
             className="space-y-4"
           >

@@ -61,6 +61,7 @@ export function BatchesClient() {
     try {
       await createBatchMutation.mutateAsync(data);
       setIsModalOpen(false);
+      router.refresh(); // Refresh server components (dashboard)
     } catch (error: any) {
       alert(error.message || "Failed to create batch");
     }
